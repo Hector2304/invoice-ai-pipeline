@@ -1,66 +1,108 @@
 <template>
-  <div class="page">
-    <RouterLink to="/" class="back-link">← Volver a facturas</RouterLink>
+  <div class="min-h-screen bg-gray-50">
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-gray-200">
+      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center gap-2">
+        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <span class="font-semibold text-gray-900 text-lg">Invoice Pipeline</span>
+      </div>
+    </nav>
 
-    <div v-if="store.loading" class="loading">Cargando...</div>
-    <div v-else-if="store.error" class="alert-error">{{ store.error }}</div>
+    <main class="max-w-6xl mx-auto px-6 py-8">
+      <!-- Back -->
+      <RouterLink to="/" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 transition-colors mb-6">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Volver a facturas
+      </RouterLink>
 
-    <template v-else-if="invoice">
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <h1>{{ invoice.vendor ?? 'Sin proveedor' }}</h1>
-            <span class="filename">{{ invoice.fileName }}</span>
+      <div v-if="store.loading" class="flex items-center justify-center py-20 text-gray-400 text-sm gap-2">
+        <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+        </svg>
+        Cargando factura...
+      </div>
+
+      <div v-else-if="store.error" class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+        {{ store.error }}
+      </div>
+
+      <template v-else-if="invoice">
+        <!-- Header card -->
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-5">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900">{{ invoice.vendor ?? 'Sin proveedor' }}</h1>
+              <p class="text-sm text-gray-500 mt-1">{{ invoice.fileName }}</p>
+            </div>
+            <span :class="statusClass(invoice.status)" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold shrink-0">
+              <span class="w-2 h-2 rounded-full" :class="statusDotClass(invoice.status)"></span>
+              {{ invoice.status }}
+            </span>
           </div>
-          <span :class="['badge', invoice.status.toLowerCase()]">{{ invoice.status }}</span>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6 pt-6 border-t border-gray-100">
+            <div>
+              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Fecha de factura</p>
+              <p class="text-sm font-medium text-gray-900">{{ invoice.invoiceDate ?? '—' }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Total</p>
+              <p class="text-sm font-medium text-gray-900">
+                {{ invoice.totalAmount != null ? `${invoice.currency} ${invoice.totalAmount}` : '—' }}
+              </p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Subida el</p>
+              <p class="text-sm font-medium text-gray-900">{{ formatDate(invoice.createdAt) }}</p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">ID</p>
+              <p class="text-xs font-mono text-gray-500 break-all">{{ invoice.id }}</p>
+            </div>
+          </div>
         </div>
 
-        <div class="info-grid">
-          <div class="info-item">
-            <label>Fecha de factura</label>
-            <span>{{ invoice.invoiceDate ?? '—' }}</span>
+        <!-- Line items card -->
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-900">Líneas de detalle</h2>
           </div>
-          <div class="info-item">
-            <label>Total</label>
-            <span>{{ invoice.totalAmount != null ? `${invoice.currency} ${invoice.totalAmount}` : '—' }}</span>
+
+          <div v-if="!invoice.lineItems?.length" class="flex flex-col items-center justify-center py-14 text-gray-400">
+            <svg class="w-8 h-8 mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h10" />
+            </svg>
+            <span class="text-sm">Sin líneas de detalle</span>
           </div>
-          <div class="info-item">
-            <label>Subida el</label>
-            <span>{{ formatDate(invoice.createdAt) }}</span>
-          </div>
-          <div class="info-item">
-            <label>ID</label>
-            <span class="mono">{{ invoice.id }}</span>
-          </div>
+
+          <table v-else class="w-full text-sm">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-100 text-left">
+                <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Descripción</th>
+                <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Cantidad</th>
+                <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Precio unitario</th>
+                <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="item in invoice.lineItems" :key="item.id" class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 text-gray-900">{{ item.description }}</td>
+                <td class="px-6 py-4 text-gray-600 text-right">{{ item.quantity ?? '—' }}</td>
+                <td class="px-6 py-4 text-gray-600 text-right">{{ item.unitPrice ?? '—' }}</td>
+                <td class="px-6 py-4 font-medium text-gray-900 text-right">{{ item.totalPrice ?? '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </div>
-
-      <div class="card" v-if="invoice.lineItems?.length">
-        <h2>Líneas de detalle</h2>
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Descripción</th>
-              <th>Cantidad</th>
-              <th>Precio unitario</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in invoice.lineItems" :key="item.id">
-              <td>{{ item.description }}</td>
-              <td>{{ item.quantity }}</td>
-              <td>{{ item.unitPrice }}</td>
-              <td>{{ item.totalPrice }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="card empty-items" v-else>
-        Sin líneas de detalle
-      </div>
-    </template>
+      </template>
+    </main>
   </div>
 </template>
 
@@ -81,37 +123,20 @@ function formatDate(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })
 }
+
+function statusClass(status) {
+  return {
+    PROCESSED: 'bg-emerald-50 text-emerald-700',
+    FAILED: 'bg-red-50 text-red-700',
+    PENDING: 'bg-amber-50 text-amber-700',
+  }[status] ?? 'bg-gray-100 text-gray-600'
+}
+
+function statusDotClass(status) {
+  return {
+    PROCESSED: 'bg-emerald-500',
+    FAILED: 'bg-red-500',
+    PENDING: 'bg-amber-500',
+  }[status] ?? 'bg-gray-400'
+}
 </script>
-
-<style scoped>
-.page { max-width: 800px; margin: 0 auto; padding: 2rem; }
-
-.back-link { color: #4f46e5; text-decoration: none; font-size: 0.9rem; display: inline-block; margin-bottom: 1.5rem; }
-.back-link:hover { text-decoration: underline; }
-
-.card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 1.5rem; margin-bottom: 1.5rem; }
-.card h2 { margin: 0 0 1rem; font-size: 1rem; color: #374151; }
-
-.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
-.card-header h1 { margin: 0 0 0.25rem; font-size: 1.4rem; }
-.filename { color: #6b7280; font-size: 0.85rem; }
-
-.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.info-item { display: flex; flex-direction: column; gap: 0.25rem; }
-.info-item label { font-size: 0.75rem; text-transform: uppercase; color: #9ca3af; font-weight: 600; }
-.info-item span { font-size: 0.95rem; color: #111827; }
-.mono { font-family: monospace; font-size: 0.8rem !important; word-break: break-all; }
-
-.table { width: 100%; border-collapse: collapse; }
-.table th, .table td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 0.9rem; }
-.table th { font-weight: 600; color: #6b7280; font-size: 0.8rem; text-transform: uppercase; }
-
-.badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
-.badge.processed { background: #d1fae5; color: #065f46; }
-.badge.failed { background: #fee2e2; color: #991b1b; }
-.badge.pending { background: #fef3c7; color: #92400e; }
-
-.loading { text-align: center; padding: 3rem; color: #6b7280; }
-.alert-error { background: #fee2e2; color: #991b1b; padding: 0.75rem 1rem; border-radius: 6px; }
-.empty-items { color: #9ca3af; text-align: center; }
-</style>

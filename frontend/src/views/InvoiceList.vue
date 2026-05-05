@@ -1,64 +1,178 @@
 <template>
-  <div class="page">
-    <header class="page-header">
-      <h1>Facturas</h1>
-      <button class="btn-primary" @click="showModal = true">+ Subir factura</button>
-    </header>
+  <div class="min-h-screen bg-gray-50">
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-gray-200">
+      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <span class="font-semibold text-gray-900 text-lg">Invoice Pipeline</span>
+        </div>
+        <button
+          @click="showModal = true"
+          class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Subir factura
+        </button>
+      </div>
+    </nav>
 
-    <div v-if="store.error" class="alert-error">{{ store.error }}</div>
+    <!-- Content -->
+    <main class="max-w-6xl mx-auto px-6 py-8">
+      <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Facturas</h1>
+        <p class="text-sm text-gray-500 mt-1">Gestiona y revisa tus facturas procesadas</p>
+      </div>
 
-    <div v-if="store.loading" class="loading">Cargando...</div>
+      <!-- Error -->
+      <div v-if="store.error" class="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+        {{ store.error }}
+      </div>
 
-    <table v-else class="table">
-      <thead>
-        <tr>
-          <th>Proveedor</th>
-          <th>Archivo</th>
-          <th>Estado</th>
-          <th>Fecha</th>
-          <th>Total</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-if="store.invoices.length === 0">
-          <td colspan="6" class="empty">No hay facturas aún</td>
-        </tr>
-        <tr v-for="inv in store.invoices" :key="inv.id">
-          <td>{{ inv.vendor ?? '—' }}</td>
-          <td>{{ inv.fileName }}</td>
-          <td><span :class="['badge', inv.status.toLowerCase()]">{{ inv.status }}</span></td>
-          <td>{{ inv.invoiceDate ?? '—' }}</td>
-          <td>{{ inv.totalAmount != null ? `${inv.currency} ${inv.totalAmount}` : '—' }}</td>
-          <td><RouterLink :to="`/invoices/${inv.id}`" class="btn-link">Ver</RouterLink></td>
-        </tr>
-      </tbody>
-    </table>
+      <!-- Table card -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <!-- Loading -->
+        <div v-if="store.loading" class="flex items-center justify-center py-20 text-gray-400 text-sm gap-2">
+          <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+          Cargando facturas...
+        </div>
 
-    <div v-if="store.totalPages > 1" class="pagination">
-      <button :disabled="store.currentPage === 0" @click="changePage(store.currentPage - 1)">‹</button>
-      <span>{{ store.currentPage + 1 }} / {{ store.totalPages }}</span>
-      <button :disabled="store.currentPage + 1 >= store.totalPages" @click="changePage(store.currentPage + 1)">›</button>
-    </div>
+        <table v-else class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-100 bg-gray-50 text-left">
+              <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Proveedor</th>
+              <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Archivo</th>
+              <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
+              <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha</th>
+              <th class="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
+              <th class="px-6 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr v-if="store.invoices.length === 0">
+              <td colspan="6" class="px-6 py-16 text-center text-gray-400">
+                <svg class="w-10 h-10 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                No hay facturas aún
+              </td>
+            </tr>
+            <tr v-for="inv in store.invoices" :key="inv.id" class="hover:bg-gray-50 transition-colors">
+              <td class="px-6 py-4 font-medium text-gray-900">{{ inv.vendor ?? '—' }}</td>
+              <td class="px-6 py-4 text-gray-500 max-w-[180px] truncate">{{ inv.fileName }}</td>
+              <td class="px-6 py-4">
+                <span :class="statusClass(inv.status)" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                  <span class="w-1.5 h-1.5 rounded-full" :class="statusDotClass(inv.status)"></span>
+                  {{ inv.status }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-gray-600">{{ inv.invoiceDate ?? '—' }}</td>
+              <td class="px-6 py-4 font-medium text-gray-900">
+                {{ inv.totalAmount != null ? `${inv.currency} ${inv.totalAmount}` : '—' }}
+              </td>
+              <td class="px-6 py-4 text-right">
+                <RouterLink
+                  :to="`/invoices/${inv.id}`"
+                  class="text-indigo-600 hover:text-indigo-800 font-medium text-sm transition-colors"
+                >
+                  Ver →
+                </RouterLink>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-    <!-- Modal -->
-    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-      <div class="modal">
-        <h2>Subir factura</h2>
-        <p class="modal-hint">Formatos aceptados: PDF, JPG, PNG</p>
-
-        <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="onFileChange" />
-
-        <div v-if="uploadError" class="alert-error">{{ uploadError }}</div>
-
-        <div class="modal-actions">
-          <button class="btn-secondary" @click="closeModal" :disabled="uploading">Cancelar</button>
-          <button class="btn-primary" @click="submit" :disabled="!selectedFile || uploading">
-            {{ uploading ? 'Subiendo...' : 'Subir' }}
-          </button>
+        <!-- Pagination -->
+        <div v-if="store.totalPages > 1" class="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+          <span class="text-sm text-gray-500">Página {{ store.currentPage + 1 }} de {{ store.totalPages }}</span>
+          <div class="flex gap-2">
+            <button
+              :disabled="store.currentPage === 0"
+              @click="changePage(store.currentPage - 1)"
+              class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              ← Anterior
+            </button>
+            <button
+              :disabled="store.currentPage + 1 >= store.totalPages"
+              @click="changePage(store.currentPage + 1)"
+              class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Siguiente →
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
+
+    <!-- Modal -->
+    <Transition name="fade">
+      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="closeModal"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+          <div class="flex items-center justify-between mb-5">
+            <h2 class="text-lg font-semibold text-gray-900">Subir factura</h2>
+            <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Drop zone -->
+          <label
+            class="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition-colors"
+            :class="{ 'border-indigo-500 bg-indigo-50': selectedFile }"
+          >
+            <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            <span v-if="!selectedFile" class="text-sm text-gray-500">
+              Haz clic o arrastra un archivo aquí
+            </span>
+            <span v-else class="text-sm font-medium text-indigo-700 px-4 text-center truncate max-w-full">
+              {{ selectedFile.name }}
+            </span>
+            <span class="text-xs text-gray-400 mt-1">PDF, JPG, PNG — máx 10MB</span>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" class="hidden" @change="onFileChange" />
+          </label>
+
+          <div v-if="uploadError" class="mt-3 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">
+            {{ uploadError }}
+          </div>
+
+          <div class="flex gap-3 mt-5">
+            <button
+              @click="closeModal"
+              :disabled="uploading"
+              class="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              @click="submit"
+              :disabled="!selectedFile || uploading"
+              class="flex-1 px-4 py-2.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            >
+              <svg v-if="uploading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+              {{ uploading ? 'Subiendo...' : 'Subir' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -102,46 +216,25 @@ async function submit() {
     uploading.value = false
   }
 }
+
+function statusClass(status) {
+  return {
+    PROCESSED: 'bg-emerald-50 text-emerald-700',
+    FAILED: 'bg-red-50 text-red-700',
+    PENDING: 'bg-amber-50 text-amber-700',
+  }[status] ?? 'bg-gray-100 text-gray-600'
+}
+
+function statusDotClass(status) {
+  return {
+    PROCESSED: 'bg-emerald-500',
+    FAILED: 'bg-red-500',
+    PENDING: 'bg-amber-500',
+  }[status] ?? 'bg-gray-400'
+}
 </script>
 
 <style scoped>
-.page { max-width: 960px; margin: 0 auto; padding: 2rem; }
-
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-.page-header h1 { margin: 0; font-size: 1.5rem; }
-
-.table { width: 100%; border-collapse: collapse; }
-.table th, .table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
-.table th { font-weight: 600; color: #6b7280; font-size: 0.85rem; text-transform: uppercase; }
-.table tr:hover td { background: #f9fafb; }
-
-.empty { text-align: center; color: #9ca3af; padding: 2rem !important; }
-
-.badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
-.badge.processed { background: #d1fae5; color: #065f46; }
-.badge.failed { background: #fee2e2; color: #991b1b; }
-.badge.pending { background: #fef3c7; color: #92400e; }
-
-.btn-primary { background: #4f46e5; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
-.btn-primary:hover { background: #4338ca; }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-secondary { background: white; color: #374151; border: 1px solid #d1d5db; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
-.btn-secondary:hover { background: #f3f4f6; }
-.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-link { color: #4f46e5; text-decoration: none; font-size: 0.9rem; }
-.btn-link:hover { text-decoration: underline; }
-
-.pagination { display: flex; align-items: center; gap: 1rem; justify-content: center; margin-top: 1.5rem; }
-.pagination button { background: none; border: 1px solid #d1d5db; border-radius: 4px; padding: 0.3rem 0.7rem; cursor: pointer; font-size: 1rem; }
-.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.loading { text-align: center; padding: 3rem; color: #6b7280; }
-.alert-error { background: #fee2e2; color: #991b1b; padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; }
-
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal { background: white; border-radius: 10px; padding: 2rem; width: 100%; max-width: 420px; }
-.modal h2 { margin: 0 0 0.25rem; }
-.modal-hint { color: #6b7280; font-size: 0.85rem; margin-bottom: 1.25rem; }
-.modal input[type="file"] { width: 100%; margin-bottom: 1rem; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>
