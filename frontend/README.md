@@ -1,5 +1,31 @@
-# Vue 3 + Vite
+# Frontend — Invoice Processing Pipeline
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Vue 3 SPA that displays and uploads invoices processed by the backend API.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## Stack
+
+- Vue 3 + Vite
+- Pinia (state management)
+- Vue Router 4
+- Tailwind CSS
+
+## Requirements
+
+- Node.js 18+
+- Backend API running on `http://localhost:8080`
+
+## Setup
+
+```bash
+npm install
+npm run dev
+```
+
+The app starts on `http://localhost:5173`.
+
+## Views
+
+| Route | Description |
+|-------|-------------|
+| `/` | Paginated invoice list with upload modal and drag-and-drop |
+| `/invoices/:id` | Invoice detail: extracted data and line items table |
