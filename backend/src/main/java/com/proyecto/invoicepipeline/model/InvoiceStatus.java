@@ -3,5 +3,6 @@ package com.proyecto.invoicepipeline.model;
 public enum InvoiceStatus {
     PROCESSING,
     COMPLETED,
-    FAILED
+    FAILED,
+    NOT_AN_INVOICE
 }

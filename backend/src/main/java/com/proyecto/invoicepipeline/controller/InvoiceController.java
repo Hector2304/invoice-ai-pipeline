@@ -42,4 +42,10 @@ public class InvoiceController {
         Invoice invoice = invoiceService.findById(id);
         return ResponseEntity.ok(new InvoiceDetailResponse(invoice));
     }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteInvoice(@PathVariable UUID id) {
+        invoiceService.softDelete(id);
+    }
 }

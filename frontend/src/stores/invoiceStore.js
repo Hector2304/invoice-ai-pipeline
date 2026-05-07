@@ -44,9 +44,20 @@ export const useInvoiceStore = defineStore('invoices', () => {
     const form = new FormData()
     form.append('file', file)
     const res = await fetch('/api/invoices', { method: 'POST', body: form })
+    if (res.status === 409) {
+      const data = await res.json()
+      const err = new Error('duplicate')
+      err.existingId = data.existingId
+      throw err
+    }
     if (!res.ok) throw new Error('Error al subir la factura')
     return await res.json()
   }
 
-  return { invoices, totalPages, currentPage, loading, error, fetchInvoices, fetchInvoice, uploadInvoice }
+  async function deleteInvoice(id) {
+    const res = await fetch(`/api/invoices/${id}`, { method: 'DELETE' })
+    if (!res.ok) throw new Error('Error al eliminar la factura')
+  }
+
+  return { invoices, totalPages, currentPage, loading, error, fetchInvoices, fetchInvoice, uploadInvoice, deleteInvoice }
 })

@@ -1,6 +1,7 @@
 package com.proyecto.invoicepipeline.service;
 
 import com.proyecto.invoicepipeline.dto.GeminiExtractionResult;
+import com.proyecto.invoicepipeline.exception.DuplicateInvoiceException;
 import com.proyecto.invoicepipeline.exception.InvalidFileTypeException;
 import com.proyecto.invoicepipeline.model.Invoice;
 import com.proyecto.invoicepipeline.model.InvoiceLineItem;
@@ -13,9 +14,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -35,17 +41,44 @@ public class InvoiceService {
     public Invoice processUpload(MultipartFile file) {
         validateFileType(file);
 
-        Invoice invoice = new Invoice();
-        invoice.setFileName(file.getOriginalFilename());
+        byte[] fileBytes;
+        try {
+            fileBytes = file.getBytes();
+        } catch (Exception e) {
+            throw new RuntimeException("Could not read file bytes", e);
+        }
+
+        String fileHash = computeHash(fileBytes);
+        Optional<Invoice> existingOpt = invoiceRepository.findByFileHash(fileHash);
+
+        Invoice invoice;
+        if (existingOpt.isPresent()) {
+            Invoice existing = existingOpt.get();
+            if (existing.getStatus() != InvoiceStatus.FAILED) {
+                throw new DuplicateInvoiceException(existing.getId());
+            }
+            invoice = existing;
+            invoice.getLineItems().clear();
+            invoice.setVendor(null);
+            invoice.setTotalAmount(null);
+            invoice.setCurrency(null);
+            invoice.setInvoiceDate(null);
+        } else {
+            invoice = new Invoice();
+            invoice.setFileName(file.getOriginalFilename());
+            invoice.setFileHash(fileHash);
+        }
         invoice.setStatus(InvoiceStatus.PROCESSING);
         invoiceRepository.save(invoice);
 
         try {
             String mimeType = ALLOWED_MIME_TYPES.get(file.getContentType());
-            GeminiExtractionResult extraction = geminiService.extractInvoiceData(file.getBytes(), mimeType);
+            GeminiExtractionResult extraction = geminiService.extractInvoiceData(fileBytes, mimeType);
 
             if (extraction == null) {
                 invoice.setStatus(InvoiceStatus.FAILED);
+            } else if (!extraction.isInvoice() || hasNoInvoiceData(extraction)) {
+                invoice.setStatus(InvoiceStatus.NOT_AN_INVOICE);
             } else {
                 applyExtraction(invoice, extraction);
                 invoice.setStatus(InvoiceStatus.COMPLETED);
@@ -65,6 +98,29 @@ public class InvoiceService {
     public Invoice findById(UUID id) {
         return invoiceRepository.findById(id)
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Invoice not found: " + id));
+    }
+
+    public void softDelete(UUID id) {
+        Invoice invoice = findById(id);
+        invoice.setDeletedAt(Instant.now());
+        invoice.setFileHash(null);
+        invoiceRepository.save(invoice);
+    }
+
+    private String computeHash(byte[] bytes) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(bytes);
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
+        }
+    }
+
+    private boolean hasNoInvoiceData(GeminiExtractionResult extraction) {
+        return extraction.getVendor() == null
+                && extraction.getTotalAmount() == null
+                && extraction.getCurrency() == null
+                && (extraction.getLineItems() == null || extraction.getLineItems().isEmpty());
     }
 
     private void validateFileType(MultipartFile file) {

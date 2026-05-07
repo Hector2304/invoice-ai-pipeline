@@ -3,6 +3,7 @@ package com.proyecto.invoicepipeline.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -13,6 +14,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "invoices")
+@SQLRestriction("deleted_at IS NULL")
 @Getter
 @Setter
 public class Invoice {
@@ -39,11 +41,17 @@ public class Invoice {
     @Column(length = 10)
     private String currency;
 
+    @Column(name = "file_hash", unique = true, length = 64)
+    private String fileHash;
+
     @Column(name = "raw_gemini_response", columnDefinition = "TEXT")
     private String rawGeminiResponse;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
 
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<InvoiceLineItem> lineItems = new ArrayList<>();

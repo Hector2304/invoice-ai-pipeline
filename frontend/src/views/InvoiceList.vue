@@ -80,12 +80,30 @@
                 {{ inv.totalAmount != null ? `${inv.currency} ${inv.totalAmount}` : '—' }}
               </td>
               <td class="px-6 py-4 text-right">
-                <RouterLink
-                  :to="`/invoices/${inv.id}`"
-                  class="text-indigo-600 hover:text-indigo-800 font-medium text-sm transition-colors"
-                >
-                  Ver →
-                </RouterLink>
+                <div class="flex items-center justify-end gap-3">
+                  <button
+                    v-if="inv.status === 'FAILED'"
+                    @click="openRetry(inv)"
+                    class="text-amber-600 hover:text-amber-800 font-medium text-sm transition-colors"
+                  >
+                    Reintentar
+                  </button>
+                  <RouterLink
+                    :to="`/invoices/${inv.id}`"
+                    class="text-indigo-600 hover:text-indigo-800 font-medium text-sm transition-colors"
+                  >
+                    Ver →
+                  </RouterLink>
+                  <button
+                    @click="handleDelete(inv.id)"
+                    class="text-red-400 hover:text-red-600 transition-colors"
+                    title="Eliminar"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -120,12 +138,16 @@
         <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="closeModal"></div>
         <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
           <div class="flex items-center justify-between mb-5">
-            <h2 class="text-lg font-semibold text-gray-900">Subir factura</h2>
+            <h2 class="text-lg font-semibold text-gray-900">{{ retryFileName ? 'Reintentar factura' : 'Subir factura' }}</h2>
             <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+          </div>
+
+          <div v-if="retryFileName" class="mb-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-3 py-2 text-sm">
+            Sube el mismo archivo: <span class="font-medium">{{ retryFileName }}</span>
           </div>
 
           <!-- Drop zone -->
@@ -178,13 +200,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useInvoiceStore } from '../stores/invoiceStore'
 
 const store = useInvoiceStore()
+const router = useRouter()
 const showModal = ref(false)
 const selectedFile = ref(null)
 const uploading = ref(false)
 const uploadError = ref(null)
+const retryFileName = ref(null)
 
 onMounted(() => store.fetchInvoices())
 
@@ -197,10 +222,26 @@ function onFileChange(e) {
   uploadError.value = null
 }
 
+function openRetry(inv) {
+  retryFileName.value = inv.fileName
+  showModal.value = true
+}
+
 function closeModal() {
   showModal.value = false
   selectedFile.value = null
   uploadError.value = null
+  retryFileName.value = null
+}
+
+async function handleDelete(id) {
+  if (!window.confirm('¿Eliminar esta factura? Esta acción no se puede deshacer.')) return
+  try {
+    await store.deleteInvoice(id)
+    store.fetchInvoices(store.currentPage)
+  } catch {
+    alert('No se pudo eliminar la factura.')
+  }
 }
 
 async function submit() {
@@ -210,8 +251,13 @@ async function submit() {
     await store.uploadInvoice(selectedFile.value)
     closeModal()
     store.fetchInvoices(store.currentPage)
-  } catch {
-    uploadError.value = 'No se pudo subir la factura. Intenta de nuevo.'
+  } catch (err) {
+    if (err.message === 'duplicate' && err.existingId) {
+      closeModal()
+      router.push(`/invoices/${err.existingId}`)
+    } else {
+      uploadError.value = 'No se pudo subir la factura. Intenta de nuevo.'
+    }
   } finally {
     uploading.value = false
   }
@@ -222,6 +268,7 @@ function statusClass(status) {
     PROCESSED: 'bg-emerald-50 text-emerald-700',
     FAILED: 'bg-red-50 text-red-700',
     PENDING: 'bg-amber-50 text-amber-700',
+    NOT_AN_INVOICE: 'bg-orange-50 text-orange-700',
   }[status] ?? 'bg-gray-100 text-gray-600'
 }
 
@@ -230,6 +277,7 @@ function statusDotClass(status) {
     PROCESSED: 'bg-emerald-500',
     FAILED: 'bg-red-500',
     PENDING: 'bg-amber-500',
+    NOT_AN_INVOICE: 'bg-orange-500',
   }[status] ?? 'bg-gray-400'
 }
 </script>

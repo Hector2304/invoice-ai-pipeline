@@ -12,6 +12,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GeminiExtractionResult {
 
+    private boolean isInvoice = true;
     private String vendor;
     private String invoiceDate;
     private BigDecimal totalAmount;

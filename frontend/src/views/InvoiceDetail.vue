@@ -41,10 +41,21 @@
               <h1 class="text-2xl font-bold text-gray-900">{{ invoice.vendor ?? 'Sin proveedor' }}</h1>
               <p class="text-sm text-gray-500 mt-1">{{ invoice.fileName }}</p>
             </div>
-            <span :class="statusClass(invoice.status)" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold shrink-0">
-              <span class="w-2 h-2 rounded-full" :class="statusDotClass(invoice.status)"></span>
-              {{ invoice.status }}
-            </span>
+            <div class="flex items-center gap-3 shrink-0">
+              <span :class="statusClass(invoice.status)" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold">
+                <span class="w-2 h-2 rounded-full" :class="statusDotClass(invoice.status)"></span>
+                {{ invoice.status }}
+              </span>
+              <button
+                @click="handleDelete"
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 border border-red-200 transition-colors"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Eliminar
+              </button>
+            </div>
           </div>
 
           <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-6 pt-6 border-t border-gray-100">
@@ -108,16 +119,27 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useInvoiceStore } from '../stores/invoiceStore'
 
 const route = useRoute()
+const router = useRouter()
 const store = useInvoiceStore()
 const invoice = ref(null)
 
 onMounted(async () => {
   invoice.value = await store.fetchInvoice(route.params.id)
 })
+
+async function handleDelete() {
+  if (!window.confirm('¿Eliminar esta factura? Esta acción no se puede deshacer.')) return
+  try {
+    await store.deleteInvoice(route.params.id)
+    router.push('/')
+  } catch {
+    alert('No se pudo eliminar la factura.')
+  }
+}
 
 function formatDate(iso) {
   if (!iso) return '—'
@@ -129,6 +151,7 @@ function statusClass(status) {
     PROCESSED: 'bg-emerald-50 text-emerald-700',
     FAILED: 'bg-red-50 text-red-700',
     PENDING: 'bg-amber-50 text-amber-700',
+    NOT_AN_INVOICE: 'bg-orange-50 text-orange-700',
   }[status] ?? 'bg-gray-100 text-gray-600'
 }
 
@@ -137,6 +160,7 @@ function statusDotClass(status) {
     PROCESSED: 'bg-emerald-500',
     FAILED: 'bg-red-500',
     PENDING: 'bg-amber-500',
+    NOT_AN_INVOICE: 'bg-orange-500',
   }[status] ?? 'bg-gray-400'
 }
 </script>

@@ -22,10 +22,13 @@ public class GeminiService {
     private final ObjectMapper objectMapper;
 
     private static final String EXTRACTION_PROMPT = """
-            Extract the following information from this invoice or receipt and return ONLY a valid JSON object, no markdown, no explanation.
+            Analyze this document. If it is NOT an invoice or receipt, return ONLY: {"isInvoice": false}
+
+            If it IS an invoice or receipt, extract the following and return ONLY a valid JSON object, no markdown, no explanation.
 
             JSON structure required:
             {
+              "isInvoice": true,
               "vendor": "string or null",
               "invoiceDate": "YYYY-MM-DD or null",
               "totalAmount": number or null,
