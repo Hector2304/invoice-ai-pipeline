@@ -6,7 +6,11 @@ Full-stack application that receives invoices or receipts (PDF/image), extracts 
 
 - Upload invoices as PDF, JPG, or PNG (max 10MB)
 - Automatic data extraction via Gemini Vision: vendor, date, total amount, currency, line items
-- Paginated invoice list with status tracking (`PROCESSING` / `COMPLETED` / `FAILED`)
+- Paginated invoice list with status tracking (`PROCESSING` / `COMPLETED` / `FAILED` / `NOT_AN_INVOICE`)
+- Detects non-invoice files and marks them as `NOT_AN_INVOICE` instead of failing
+- Deduplication via SHA-256 hash — re-uploading the same file redirects to the existing record (HTTP 409)
+- Retry support for `FAILED` invoices — re-uploading retriggers Gemini extraction
+- Soft delete with file hash cleanup, allowing re-upload after deletion
 - Invoice detail view with full extracted data and line items table
 - Consistent JSON error responses with proper HTTP status codes
 
@@ -43,3 +47,4 @@ invoice-pipeline/
 | `POST` | `/api/invoices` | Upload invoice (multipart/form-data) |
 | `GET` | `/api/invoices` | List invoices (paginated) |
 | `GET` | `/api/invoices/{id}` | Get invoice detail |
+| `DELETE` | `/api/invoices/{id}` | Soft-delete invoice |
